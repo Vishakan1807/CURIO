@@ -3,6 +3,8 @@ import { RootLayout } from '@/components/layout/RootLayout'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { HomePage } from '@/pages/HomePage'
 import { AuthPage } from '@/pages/AuthPage'
+import { ShopPage } from '@/pages/ShopPage'
+import { ProductDetailPage } from '@/pages/ProductDetailPage'
 import {
   AboutPage,
   AccountPage,
@@ -10,8 +12,6 @@ import {
   CartPage,
   ContactPage,
   NotFoundPage,
-  ProductDetailPage,
-  ShopPage,
   SolutionsPage,
 } from '@/pages/StubPages'
 
