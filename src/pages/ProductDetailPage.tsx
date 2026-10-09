@@ -14,9 +14,6 @@ export function ProductDetailPage() {
   
   const { addItem } = useCartStore()
 
-  const selectedVariant = product?.variants?.find(v => v.id === selectedVariantId)
-  const displayImage = selectedVariant?.image ?? product?.images?.[0]
-
   if (!product) {
     return (
       <div className="container-curio section-py" style={{ textAlign: 'center' }}>
@@ -58,8 +55,8 @@ export function ProductDetailPage() {
           {/* Left: Images */}
           <div className="product-gallery">
             <div className="product-gallery__main">
-              {displayImage ? (
-                <img src={displayImage} alt={selectedVariant?.color ?? product.name} className="product-gallery__img" />
+              {product.images?.[0] ? (
+                <img src={product.images[0]} alt={product.name} className="product-gallery__img" />
               ) : (
                 <div className="product-gallery__placeholder">
                   <span>Image Preview</span>
@@ -99,12 +96,7 @@ export function ProductDetailPage() {
             {/* Variants */}
             {product.variants && product.variants.length > 0 && (
               <div className="product-options">
-                <h4 className="product-options-label">
-                  Select Color
-                  {selectedVariant && (
-                    <span className="product-options-color-name"> — {selectedVariant.color}</span>
-                  )}
-                </h4>
+                <h4 className="product-options-label">Select Color</h4>
                 <div className="product-variants">
                   {product.variants.map(v => (
                     <button

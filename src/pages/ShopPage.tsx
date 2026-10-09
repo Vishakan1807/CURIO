@@ -157,26 +157,50 @@ export function ShopPage() {
             <div className="shop-filter-group__header">
               <h4>Price Range</h4>
             </div>
-            <div className="shop-price-inputs">
-              <input 
-                type="number" 
-                min="0"
-                value={priceRange[0]}
-                onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                className="auth-input"
-                style={{ padding: '0.4rem', fontSize: '0.875rem' }}
-                placeholder="Min"
-              />
-              <span>to</span>
-              <input 
-                type="number" 
-                min="0"
-                value={priceRange[1]}
-                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                className="auth-input"
-                style={{ padding: '0.4rem', fontSize: '0.875rem' }}
-                placeholder="Max"
-              />
+            <div className="price-slider-wrap">
+              <div className="price-slider-labels">
+                <span>₹{priceRange[0].toLocaleString('en-IN')}</span>
+                <span>₹{priceRange[1].toLocaleString('en-IN')}</span>
+              </div>
+              <div className="price-slider-track-wrap">
+                <div 
+                  className="price-slider-fill"
+                  style={{
+                    left: `${(priceRange[0] / 10000) * 100}%`,
+                    right: `${100 - (priceRange[1] / 10000) * 100}%`
+                  }}
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={10000}
+                  step={100}
+                  value={priceRange[0]}
+                  onChange={e => {
+                    const val = Number(e.target.value)
+                    if (val < priceRange[1]) setPriceRange([val, priceRange[1]])
+                  }}
+                  className="price-range-input price-range-input--min"
+                  aria-label="Minimum price"
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={10000}
+                  step={100}
+                  value={priceRange[1]}
+                  onChange={e => {
+                    const val = Number(e.target.value)
+                    if (val > priceRange[0]) setPriceRange([priceRange[0], val])
+                  }}
+                  className="price-range-input price-range-input--max"
+                  aria-label="Maximum price"
+                />
+              </div>
+              <div className="price-slider-bounds">
+                <span>₹0</span>
+                <span>₹10,000</span>
+              </div>
             </div>
           </div>
 
@@ -328,15 +352,96 @@ const shopStyles = `
     color: var(--color-text-primary);
   }
 
-  .shop-price-inputs {
+  /* Price slider */
+  .price-slider-wrap {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 0.5rem;
   }
 
-  .shop-price-inputs span {
+  .price-slider-labels {
+    display: flex;
+    justify-content: space-between;
     font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .price-slider-track-wrap {
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+  }
+
+  .price-slider-fill {
+    position: absolute;
+    height: 4px;
+    background: var(--color-accent);
+    border-radius: 99px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .price-range-input {
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    pointer-events: none;
+    outline: none;
+  }
+
+  .price-range-input::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 99px;
+  }
+
+  .price-range-input--min::-webkit-slider-runnable-track,
+  .price-range-input--max::-webkit-slider-runnable-track {
+    background: transparent;
+  }
+
+  .price-range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    border: 2px solid var(--color-bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    cursor: pointer;
+    pointer-events: all;
+    position: relative;
+    z-index: 2;
+    transition: transform 0.15s;
+  }
+
+  .price-range-input::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  .price-range-input::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    border: 2px solid var(--color-bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    cursor: pointer;
+    pointer-events: all;
+  }
+
+  .price-slider-bounds {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
     color: var(--color-text-muted);
+    margin-top: 0.125rem;
   }
 
   .shop-clear-filters {

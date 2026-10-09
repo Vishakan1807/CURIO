@@ -8,12 +8,10 @@ import { ProductDetailPage } from '@/pages/ProductDetailPage'
 import { CartPage } from '@/pages/CartPage'
 import { BulkOrderPage } from '@/pages/BulkOrderPage'
 import { AccountPage } from '@/pages/AccountPage'
-import {
-  AboutPage,
-  ContactPage,
-  NotFoundPage,
-  SolutionsPage,
-} from '@/pages/StubPages'
+import { AboutPage } from '@/pages/AboutPage'
+import { ContactPage } from '@/pages/ContactPage'
+import { SolutionsPage } from '@/pages/SolutionsPage'
+import { NotFoundPage } from '@/pages/StubPages'
 
 const router = createBrowserRouter([
   {
