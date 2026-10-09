@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { PaletteDial } from '@/components/ui/PaletteDial'
 import { useAuthStore } from '@/stores/authStore'
+import { useCartStore } from '@/stores/cartStore'
 
 const NAV_CATEGORIES = [
   { label: 'Drinkware', href: '/shop/drinkware' },
@@ -43,6 +44,7 @@ export function Header() {
   const navigate = useNavigate()
   
   const { user, isAuthenticated, logout } = useAuthStore()
+  const { setIsOpen: setMenuOpen, getTotalItems } = useCartStore()
 
   const handleLogout = () => {
     logout()
@@ -194,10 +196,16 @@ export function Header() {
             <PaletteDial />
 
             {/* Cart */}
-            <Link to="/cart" className="btn btn-ghost btn-icon curio-cart-btn" aria-label="Shopping cart">
+            <button 
+              className="btn btn-ghost btn-icon curio-cart-btn" 
+              aria-label="Shopping cart"
+              onClick={() => setMenuOpen(true)}
+            >
               <ShoppingBag size={18} />
-              <span className="curio-cart-badge" aria-label="0 items in cart">0</span>
-            </Link>
+              {getTotalItems() > 0 && (
+                <span className="curio-cart-badge" aria-label={`${getTotalItems()} items in cart`}>{getTotalItems()}</span>
+              )}
+            </button>
 
             {/* Account */}
             {isAuthenticated ? (

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Star, ShieldCheck, ChevronRight, Package, Truck, ArrowLeft } from 'lucide-react'
 import { PRODUCTS } from '@/data/products'
+import { useCartStore } from '@/stores/cartStore'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -9,11 +10,9 @@ export function ProductDetailPage() {
   const product = PRODUCTS.find(p => p.id === id)
 
   const [quantity, setQuantity] = useState(product?.minQty || 1)
-  const [selectedVariant, setSelectedVariant] = useState(product?.variants?.[0]?.id)
+  const [selectedVariantId, setSelectedVariantId] = useState(product?.variants?.[0]?.id)
   
-  // Dummy cart add state
-  const [addingToCart, setAddingToCart] = useState(false)
-  const [added, setAdded] = useState(false)
+  const { addItem } = useCartStore()
 
   if (!product) {
     return (
@@ -27,13 +26,9 @@ export function ProductDetailPage() {
   }
 
   const handleAddToCart = () => {
-    setAddingToCart(true)
-    // Simulate network request
-    setTimeout(() => {
-      setAddingToCart(false)
-      setAdded(true)
-      setTimeout(() => setAdded(false), 2000)
-    }, 600)
+    if (!product) return
+    const variant = product.variants?.find(v => v.id === selectedVariantId)
+    addItem(product, quantity, variant)
   }
 
   return (
@@ -106,8 +101,8 @@ export function ProductDetailPage() {
                   {product.variants.map(v => (
                     <button
                       key={v.id}
-                      className={`product-variant-btn ${selectedVariant === v.id ? 'product-variant-btn--active' : ''}`}
-                      onClick={() => setSelectedVariant(v.id)}
+                      className={`product-variant-btn ${selectedVariantId === v.id ? 'product-variant-btn--active' : ''}`}
+                      onClick={() => setSelectedVariantId(v.id)}
                       aria-label={v.color}
                       title={v.color}
                     >
@@ -156,11 +151,10 @@ export function ProductDetailPage() {
               </div>
 
               <button 
-                className={`btn ${added ? 'btn-success' : 'btn-primary'} btn-lg product-add-btn`}
+                className="btn btn-primary btn-lg product-add-btn"
                 onClick={handleAddToCart}
-                disabled={addingToCart || added}
               >
-                {addingToCart ? 'Adding...' : added ? 'Added to Cart ✓' : 'Add to Cart'}
+                Add to Cart
               </button>
             </div>
 
