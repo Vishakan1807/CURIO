@@ -3,6 +3,7 @@ export interface ProductVariant {
   color: string
   colorCode: string
   stock: number
+  image?: string
 }
 
 export interface Product {

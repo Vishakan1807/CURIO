@@ -23,9 +23,9 @@ export const PRODUCTS: Product[] = [
       'Warranty': '1 Year'
     },
     variants: [
-      { id: 'v-1', color: 'Matte Black', colorCode: '#1A1A1A', stock: 150 },
-      { id: 'v-2', color: 'Olive Green', colorCode: '#4A5D23', stock: 85 },
-      { id: 'v-3', color: 'Steel Grey', colorCode: '#7A7A7A', stock: 200 }
+      { id: 'v-1', color: 'Matte Black', colorCode: '#1A1A1A', stock: 150, image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&q=80&w=800' },
+      { id: 'v-2', color: 'Olive Green', colorCode: '#4A5D23', stock: 85, image: 'https://images.unsplash.com/photo-1589365278144-c9e705f843ba?auto=format&fit=crop&q=80&w=800' },
+      { id: 'v-3', color: 'Steel Grey', colorCode: '#7A7A7A', stock: 200, image: 'https://images.unsplash.com/photo-1629136986387-b0d00c1e92ae?auto=format&fit=crop&q=80&w=800' }
     ]
   },
   {
@@ -39,7 +39,7 @@ export const PRODUCTS: Product[] = [
     rating: 4.9,
     reviews: 144,
     badge: 'New',
-    images: ['https://images.unsplash.com/photo-1531346878377-a541e4ab0e43?auto=format&fit=crop&q=80&w=800'],
+    images: ['https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=800'],
     customizable: true,
     features: ['Acid-free paper', 'Expandable inner pocket', 'Lays flat 180°', 'FSC-certified'],
     specifications: {
@@ -137,8 +137,8 @@ export const PRODUCTS: Product[] = [
       'Weight': '750g'
     },
     variants: [
-      { id: 'v-6', color: 'Navy Blue', colorCode: '#1A2942', stock: 120 },
-      { id: 'v-7', color: 'Charcoal', colorCode: '#36454F', stock: 80 }
+      { id: 'v-6', color: 'Navy Blue', colorCode: '#1A2942', stock: 120, image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800' },
+      { id: 'v-7', color: 'Charcoal', colorCode: '#36454F', stock: 80, image: 'https://images.unsplash.com/photo-1581605405669-fcdf81165afa?auto=format&fit=crop&q=80&w=800' }
     ]
   },
   {
@@ -183,8 +183,8 @@ export const PRODUCTS: Product[] = [
       'Gender': 'Unisex'
     },
     variants: [
-      { id: 'v-8', color: 'Black', colorCode: '#111111', stock: 100 },
-      { id: 'v-9', color: 'Navy', colorCode: '#1A2942', stock: 150 }
+      { id: 'v-8', color: 'Black', colorCode: '#111111', stock: 100, image: 'https://images.unsplash.com/photo-1559551409-dadc959f76b8?auto=format&fit=crop&q=80&w=800' },
+      { id: 'v-9', color: 'Navy', colorCode: '#1A2942', stock: 150, image: 'https://images.unsplash.com/photo-1551489186-cf8726f514f8?auto=format&fit=crop&q=80&w=800' }
     ]
   }
 ]

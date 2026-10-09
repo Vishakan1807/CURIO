@@ -5,11 +5,11 @@ import { HomePage } from '@/pages/HomePage'
 import { AuthPage } from '@/pages/AuthPage'
 import { ShopPage } from '@/pages/ShopPage'
 import { ProductDetailPage } from '@/pages/ProductDetailPage'
+import { CartPage } from '@/pages/CartPage'
+import { BulkOrderPage } from '@/pages/BulkOrderPage'
+import { AccountPage } from '@/pages/AccountPage'
 import {
   AboutPage,
-  AccountPage,
-  BulkOrderPage,
-  CartPage,
   ContactPage,
   NotFoundPage,
   SolutionsPage,
