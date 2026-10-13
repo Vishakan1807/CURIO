@@ -1,14 +1,34 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, Tag, Package, ChevronRight } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, Tag, Package, ChevronRight, X, Loader2 } from 'lucide-react'
 import { useCartStore } from '@/stores/cartStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useAdminStore } from '@/stores/adminStore'
 
 export function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, getSubtotal } = useCartStore()
+  const { user } = useAuthStore()
+  const createOrder = useAdminStore(s => s.createOrder)
   const navigate = useNavigate()
+
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  
+  // Checkout form fields
+  const [customerName, setCustomerName] = useState(user?.name || '')
+  const [customerEmail, setCustomerEmail] = useState(user?.email || '')
+  const [customerCompany, setCustomerCompany] = useState(user?.company || '')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [city, setCity] = useState('')
+  const [pincode, setPincode] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('Corporate Net Banking')
+  const [checkoutError, setCheckoutError] = useState('')
 
   const subtotal = getSubtotal()
   const gst = Math.round(subtotal * 0.18)
   const total = subtotal + gst
+
 
   if (items.length === 0) {
     return (
@@ -168,7 +188,7 @@ export function CartPage() {
               <button
                 className="btn btn-primary btn-lg"
                 style={{ width: '100%', marginTop: '1.5rem' }}
-                onClick={() => navigate('/bulk-order')}
+                onClick={() => setShowCheckout(true)}
               >
                 Proceed to Checkout
               </button>
@@ -188,6 +208,191 @@ export function CartPage() {
 
         </div>
       </div>
+
+      {/* Corporate Checkout Modal */}
+      {showCheckout && (
+        <div className="checkout-modal-overlay" onClick={() => setShowCheckout(false)}>
+          <div className="checkout-modal" onClick={e => e.stopPropagation()}>
+            <div className="checkout-modal__header">
+              <div>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem' }}>Corporate Checkout</h2>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>Complete delivery and company details for this order</p>
+              </div>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowCheckout(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form
+              className="checkout-modal__form"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                setCheckoutError('')
+                if (!customerName.trim() || !customerEmail.trim()) {
+                  setCheckoutError('Please provide your name and email.')
+                  return
+                }
+                if (!address.trim() || !city.trim() || !pincode.trim()) {
+                  setCheckoutError('Please provide a complete delivery address.')
+                  return
+                }
+                setSubmitting(true)
+                try {
+                  const newOrder = createOrder({
+                    customerName: customerName.trim(),
+                    customerEmail: customerEmail.trim(),
+                    customerCompany: customerCompany.trim() || 'Enterprise Client',
+                    customerPhone: customerPhone.trim() || '+91 98765 00000',
+                    shippingAddress: `${address.trim()}, ${city.trim()} - ${pincode.trim()}`,
+                    items: items.map(i => ({
+                      productId: i.productId,
+                      name: i.product.name,
+                      brand: i.product.brand,
+                      price: i.product.price,
+                      quantity: i.quantity,
+                      image: i.variant?.image ?? i.product.images[0],
+                      variantColor: i.variant?.color,
+                    })),
+                    subtotal,
+                    gst,
+                    total,
+                    status: 'Processing',
+                    paymentMethod,
+                  })
+                  clearCart()
+                  setShowCheckout(false)
+                  navigate('/account', { state: { orderSuccess: newOrder.orderNumber } })
+                } catch {
+                  setCheckoutError('Failed to place order. Please try again.')
+                } finally {
+                  setSubmitting(false)
+                }
+              }}
+            >
+              {checkoutError && (
+                <div style={{ padding: '0.75rem', background: 'var(--color-error-muted)', color: 'var(--color-error)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
+                  {checkoutError}
+                </div>
+              )}
+
+              <div className="checkout-grid-2">
+                <div className="checkout-field">
+                  <label className="checkout-label">Contact Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="checkout-input"
+                    value={customerName}
+                    onChange={e => setCustomerName(e.target.value)}
+                    placeholder="Arjun Mehra"
+                  />
+                </div>
+                <div className="checkout-field">
+                  <label className="checkout-label">Work Email *</label>
+                  <input
+                    type="email"
+                    required
+                    className="checkout-input"
+                    value={customerEmail}
+                    onChange={e => setCustomerEmail(e.target.value)}
+                    placeholder="arjun@company.com"
+                  />
+                </div>
+              </div>
+
+              <div className="checkout-grid-2">
+                <div className="checkout-field">
+                  <label className="checkout-label">Company Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="checkout-input"
+                    value={customerCompany}
+                    onChange={e => setCustomerCompany(e.target.value)}
+                    placeholder="Swiggy Technologies Pvt Ltd"
+                  />
+                </div>
+                <div className="checkout-field">
+                  <label className="checkout-label">Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    className="checkout-input"
+                    value={customerPhone}
+                    onChange={e => setCustomerPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                  />
+                </div>
+              </div>
+
+              <div className="checkout-field">
+                <label className="checkout-label">Delivery Street Address *</label>
+                <input
+                  type="text"
+                  required
+                  className="checkout-input"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  placeholder="Tower D, Embassy TechVillage, Outer Ring Road"
+                />
+              </div>
+
+              <div className="checkout-grid-2">
+                <div className="checkout-field">
+                  <label className="checkout-label">City *</label>
+                  <input
+                    type="text"
+                    required
+                    className="checkout-input"
+                    value={city}
+                    onChange={e => setCity(e.target.value)}
+                    placeholder="Bengaluru"
+                  />
+                </div>
+                <div className="checkout-field">
+                  <label className="checkout-label">PIN Code *</label>
+                  <input
+                    type="text"
+                    required
+                    className="checkout-input"
+                    value={pincode}
+                    onChange={e => setPincode(e.target.value)}
+                    placeholder="560103"
+                  />
+                </div>
+              </div>
+
+              <div className="checkout-field">
+                <label className="checkout-label">Payment Terms</label>
+                <select
+                  value={paymentMethod}
+                  onChange={e => setPaymentMethod(e.target.value)}
+                  className="checkout-input"
+                >
+                  <option value="Corporate Net Banking">Corporate Net Banking</option>
+                  <option value="Purchase Order / Invoice (30 Days)">Purchase Order / Invoice (Net 30 Days)</option>
+                  <option value="Corporate Credit Card">Corporate Credit Card</option>
+                  <option value="UPI AutoPay">UPI Corporate AutoPay</option>
+                </select>
+              </div>
+
+              <div className="checkout-footer">
+                <div>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>Total Amount (incl. 18% GST):</span>
+                  <p style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>₹{total.toLocaleString('en-IN')}</p>
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-lg"
+                  disabled={submitting}
+                >
+                  {submitting ? <><Loader2 size={16} className="auth-spinner" /> Placing Order…</> : 'Confirm & Place Order'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       <style>{cartPageStyles}</style>
     </div>
   )
@@ -544,5 +749,96 @@ const cartPageStyles = `
   .order-summary-trust li {
     font-size: 0.8125rem;
     color: var(--color-text-muted);
+  }
+
+  /* Checkout Modal */
+  .checkout-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  .checkout-modal {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    width: 100%;
+    max-width: 620px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .checkout-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .checkout-modal__form {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.125rem;
+  }
+
+  .checkout-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .checkout-grid-2 { grid-template-columns: 1fr; }
+  }
+
+  .checkout-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .checkout-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+
+  .checkout-input {
+    width: 100%;
+    padding: 0.65rem 0.875rem;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    box-sizing: border-box;
+  }
+
+  .checkout-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+
+  .checkout-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 `

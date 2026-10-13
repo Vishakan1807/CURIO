@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Building2, User, Mail, Phone, Package, Tag, Calendar, CheckCircle2, ChevronDown, ArrowRight } from 'lucide-react'
 import { PRODUCTS } from '@/data/products'
 import { useCartStore } from '@/stores/cartStore'
+import { useAdminStore } from '@/stores/adminStore'
 
 interface QuoteForm {
   // Company
@@ -48,8 +49,10 @@ export function BulkOrderPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof QuoteForm, string>>>({})
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [createdQuoteNumber, setCreatedQuoteNumber] = useState('')
 
   const cartItems = useCartStore(s => s.items)
+  const createQuote = useAdminStore(s => s.createQuote)
 
   const set = (field: keyof QuoteForm, value: string | string[]) => {
     setForm(f => ({ ...f, [field]: value }))
@@ -82,11 +85,45 @@ export function BulkOrderPage() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 1800))
-    setLoading(false)
-    setSubmitted(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    try {
+      const selectedProds = PRODUCTS.filter(p => form.selectedProducts.includes(p.id)).map(p => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand,
+      }))
+
+      const units = Number(form.totalUnits)
+      const avgPrice = selectedProds.length > 0 
+        ? PRODUCTS.filter(p => form.selectedProducts.includes(p.id)).reduce((acc, curr) => acc + curr.price, 0) / selectedProds.length
+        : 1500
+      const estimatedTotal = Math.round(avgPrice * units)
+
+      const savedQuote = createQuote({
+        companyName: form.companyName.trim(),
+        gstin: form.gstin.trim() || undefined,
+        industry: form.industry,
+        contactName: form.contactName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        selectedProducts: selectedProds,
+        totalUnits: units,
+        deliveryDate: form.deliveryDate,
+        brandingType: form.brandingType,
+        artworkReady: form.artworkReady || 'Not specified',
+        notes: form.notes.trim() || undefined,
+        status: 'Processing',
+        estimatedTotal,
+      })
+
+      setCreatedQuoteNumber(savedQuote.quoteNumber)
+      setSubmitted(true)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch {
+      // Handle error
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Pre-populate products from cart if any
@@ -103,7 +140,7 @@ export function BulkOrderPage() {
             <CheckCircle2 size={72} className="quote-success__icon" />
             <h1>Quote Request Received!</h1>
             <p>Thank you, <strong>{form.contactName}</strong>! Our corporate gifting team will review your request for <strong>{form.companyName}</strong> and reach out to <strong>{form.email}</strong> within <strong>24 business hours</strong>.</p>
-            <div className="quote-success__ref">Reference: QT-{Date.now().toString().slice(-6)}</div>
+            <div className="quote-success__ref">Reference: {createdQuoteNumber}</div>
             <div className="quote-success__actions">
               <Link to="/shop" className="btn btn-primary btn-lg">Continue Browsing</Link>
               <Link to="/" className="btn btn-ghost btn-lg">Go Home</Link>

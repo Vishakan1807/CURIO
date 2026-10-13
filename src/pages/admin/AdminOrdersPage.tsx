@@ -1,26 +1,10 @@
 import { useState } from 'react'
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, Trash2 } from 'lucide-react'
+import { useAdminStore } from '@/stores/adminStore'
+import type { OrderStatus } from '@/stores/adminStore'
 
-type OrderStatus = 'All' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled'
+type FilterStatus = 'All' | OrderStatus
 type TabType = 'orders' | 'quotes'
-
-const ALL_ORDERS = [
-  { id: 'ORD-2410-112', customer: 'Riya Singh', company: 'Razorpay', items: 'Executive Welcome Kit × 25', total: 124750, status: 'Processing' as const, date: '2024-10-08', type: 'orders' },
-  { id: 'ORD-2410-111', customer: 'Arjun Mehra', company: 'Swiggy', items: 'Insulated Flask × 100', total: 129900, status: 'Shipped' as const, date: '2024-10-07', type: 'orders' },
-  { id: 'ORD-2410-110', customer: 'Priya Nair', company: 'CRED', items: 'Premium Notebook × 50', total: 44950, status: 'Delivered' as const, date: '2024-10-05', type: 'orders' },
-  { id: 'ORD-2410-109', customer: 'Siddharth K', company: 'Zepto', items: 'Corporate Fleece Jacket × 30', total: 65970, status: 'Delivered' as const, date: '2024-10-03', type: 'orders' },
-  { id: 'ORD-2410-108', customer: 'Meera Joshi', company: 'Freshworks', items: 'Canvas Backpack × 20', total: 37980, status: 'Cancelled' as const, date: '2024-10-01', type: 'orders' },
-  { id: 'ORD-2409-099', customer: 'Vikram Patel', company: 'HDFC Bank', items: 'Wireless Power Bank × 75', total: 187425, status: 'Delivered' as const, date: '2024-09-28', type: 'orders' },
-  { id: 'ORD-2409-088', customer: 'Kavya Rao', company: 'Infosys', items: 'Eco Bamboo Tumbler × 200', total: 189800, status: 'Delivered' as const, date: '2024-09-20', type: 'orders' },
-]
-
-const ALL_QUOTES = [
-  { id: 'QT-924501', customer: 'Neha Gupta', company: 'Deloitte', items: 'Onboarding Kits for 150 hires', total: null, status: 'Processing' as const, date: '2024-10-09', type: 'quotes' },
-  { id: 'QT-924500', customer: 'Rohan Das', company: 'Goldman Sachs', items: 'Executive kits × 50 + branding', total: null, status: 'Processing' as const, date: '2024-10-08', type: 'quotes' },
-  { id: 'QT-924499', customer: 'Ananya Sen', company: 'EY', items: 'Festive Diwali hampers × 300', total: 450000, status: 'Shipped' as const, date: '2024-10-05', type: 'quotes' },
-  { id: 'QT-924498', customer: 'Karan Mehta', company: 'Accenture', items: 'Laptop bags + pen sets × 200', total: 539800, status: 'Delivered' as const, date: '2024-09-30', type: 'quotes' },
-  { id: 'QT-924497', customer: 'Divya Pillai', company: 'Wipro', items: 'Wellness kits × 500', total: 699500, status: 'Delivered' as const, date: '2024-09-22', type: 'quotes' },
-]
 
 const STATUS_COLORS: Record<string, string> = {
   Processing: '#F59E0B',
@@ -29,36 +13,40 @@ const STATUS_COLORS: Record<string, string> = {
   Cancelled: '#EF4444',
 }
 
-const STATUS_OPTIONS: OrderStatus[] = ['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
+const STATUS_OPTIONS: FilterStatus[] = ['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
 
 export function AdminOrdersPage() {
+  const { orders, quotes, updateOrderStatus, updateQuoteStatus, deleteOrder, deleteQuote } = useAdminStore()
   const [tab, setTab] = useState<TabType>('orders')
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<OrderStatus>('All')
-  const [statusMap, setStatusMap] = useState<Record<string, string>>({})
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('All')
 
-  const data = tab === 'orders' ? ALL_ORDERS : ALL_QUOTES
-
-  const filtered = data.filter(o => {
-    const currentStatus = statusMap[o.id] ?? o.status
+  const filteredOrders = orders.filter(o => {
     const matchSearch =
-      o.customer.toLowerCase().includes(search.toLowerCase()) ||
-      o.company.toLowerCase().includes(search.toLowerCase()) ||
-      o.id.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = statusFilter === 'All' || currentStatus === statusFilter
+      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
+      o.customerCompany.toLowerCase().includes(search.toLowerCase()) ||
+      o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
+      o.customerEmail.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === 'All' || o.status === statusFilter
     return matchSearch && matchStatus
   })
 
-  const updateStatus = (id: string, newStatus: string) => {
-    setStatusMap(prev => ({ ...prev, [id]: newStatus }))
-  }
+  const filteredQuotes = quotes.filter(q => {
+    const matchSearch =
+      q.contactName.toLowerCase().includes(search.toLowerCase()) ||
+      q.companyName.toLowerCase().includes(search.toLowerCase()) ||
+      q.quoteNumber.toLowerCase().includes(search.toLowerCase()) ||
+      q.email.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === 'All' || q.status === statusFilter
+    return matchSearch && matchStatus
+  })
 
   return (
     <div className="admin-page">
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Orders & Quotes</h1>
-          <p className="admin-page-sub">Manage all customer orders and corporate quote requests</p>
+          <h1 className="admin-page-title">Live Orders & Quotes</h1>
+          <p className="admin-page-sub">Manage real customer purchases and B2B corporate quotation requests</p>
         </div>
       </div>
 
@@ -69,14 +57,14 @@ export function AdminOrdersPage() {
           onClick={() => setTab('orders')}
         >
           Customer Orders
-          <span className="admin-tab-count">{ALL_ORDERS.length}</span>
+          <span className="admin-tab-count">{orders.length}</span>
         </button>
         <button
           className={`admin-tab ${tab === 'quotes' ? 'admin-tab--active' : ''}`}
           onClick={() => setTab('quotes')}
         >
           Quote Requests
-          <span className="admin-tab-count">{ALL_QUOTES.length}</span>
+          <span className="admin-tab-count">{quotes.length}</span>
         </button>
       </div>
 
@@ -107,76 +95,184 @@ export function AdminOrdersPage() {
           </div>
         </div>
 
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Customer</th>
-                <th>Items</th>
-                <th>Total</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Update Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
+        {/* Orders Table */}
+        {tab === 'orders' && (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
-                    No results found.
-                  </td>
+                  <th>Order No</th>
+                  <th>Customer & Company</th>
+                  <th>Items Details</th>
+                  <th>Total</th>
+                  <th>Date</th>
+                  <th>Live Status</th>
+                  <th>Change Status</th>
+                  <th>Action</th>
                 </tr>
-              ) : filtered.map(order => {
-                const currentStatus = statusMap[order.id] ?? order.status
-                const color = STATUS_COLORS[currentStatus] ?? '#6B7280'
-                return (
-                  <tr key={order.id}>
-                    <td className="admin-table__id">{order.id}</td>
-                    <td>
-                      <p className="admin-table__name">{order.customer}</p>
-                      <p className="admin-table__sub">{order.company}</p>
-                    </td>
-                    <td className="admin-table__product" style={{ maxWidth: 200 }}>
-                      {order.items}
-                    </td>
-                    <td className="admin-table__amount">
-                      {order.total ? `₹${order.total.toLocaleString('en-IN')}` : (
-                        <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>Pending</span>
-                      )}
-                    </td>
-                    <td style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
-                      {new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td>
-                      <span
-                        className="admin-status-pill"
-                        style={{ background: `${color}22`, color }}
-                      >
-                        {currentStatus}
-                      </span>
-                    </td>
-                    <td>
-                      <select
-                        className="admin-status-select"
-                        value={currentStatus}
-                        onChange={e => updateStatus(order.id, e.target.value)}
-                      >
-                        {Object.keys(STATUS_COLORS).map(s => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
+              </thead>
+              <tbody>
+                {filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--color-text-muted)' }}>
+                      No orders matching your criteria.
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                ) : filteredOrders.map(order => {
+                  const color = STATUS_COLORS[order.status] ?? '#6B7280'
+                  return (
+                    <tr key={order.id}>
+                      <td className="admin-table__id">{order.orderNumber}</td>
+                      <td>
+                        <p className="admin-table__name">{order.customerName}</p>
+                        <p className="admin-table__sub">{order.customerCompany} · {order.customerEmail}</p>
+                      </td>
+                      <td className="admin-table__product" style={{ maxWidth: 260 }}>
+                        {order.items.map(i => `${i.name} × ${i.quantity}`).join(', ')}
+                        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                          Ship to: {order.shippingAddress}
+                        </p>
+                      </td>
+                      <td className="admin-table__amount">
+                        ₹{order.total.toLocaleString('en-IN')}
+                      </td>
+                      <td style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
+                        {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td>
+                        <span
+                          className="admin-status-pill"
+                          style={{ background: `${color}22`, color }}
+                        >
+                          {order.status}
+                        </span>
+                      </td>
+                      <td>
+                        <select
+                          className="admin-status-select"
+                          value={order.status}
+                          onChange={e => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                          aria-label={`Change status for order ${order.orderNumber}`}
+                        >
+                          {Object.keys(STATUS_COLORS).map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <button
+                          className="admin-action-btn admin-action-btn--danger"
+                          title="Delete Order"
+                          onClick={() => {
+                            if (confirm(`Delete order ${order.orderNumber}?`)) {
+                              deleteOrder(order.id)
+                            }
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Quotes Table */}
+        {tab === 'quotes' && (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Quote Ref</th>
+                  <th>Client & Company</th>
+                  <th>Requirements</th>
+                  <th>Units</th>
+                  <th>Est. Value</th>
+                  <th>Delivery Date</th>
+                  <th>Status</th>
+                  <th>Change Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredQuotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--color-text-muted)' }}>
+                      No quote requests matching your criteria.
+                    </td>
+                  </tr>
+                ) : filteredQuotes.map(quote => {
+                  const color = STATUS_COLORS[quote.status] ?? '#6B7280'
+                  return (
+                    <tr key={quote.id}>
+                      <td className="admin-table__id">{quote.quoteNumber}</td>
+                      <td>
+                        <p className="admin-table__name">{quote.contactName}</p>
+                        <p className="admin-table__sub">{quote.companyName} · {quote.phone}</p>
+                      </td>
+                      <td className="admin-table__product" style={{ maxWidth: 240 }}>
+                        <p style={{ fontWeight: 600 }}>{quote.selectedProducts.map(p => p.name).join(', ')}</p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                          Branding: {quote.brandingType} {quote.notes ? `· "${quote.notes}"` : ''}
+                        </p>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{quote.totalUnits} units</td>
+                      <td className="admin-table__amount">
+                        {quote.estimatedTotal ? `₹${quote.estimatedTotal.toLocaleString('en-IN')}` : 'To Quote'}
+                      </td>
+                      <td style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
+                        {quote.deliveryDate}
+                      </td>
+                      <td>
+                        <span
+                          className="admin-status-pill"
+                          style={{ background: `${color}22`, color }}
+                        >
+                          {quote.status}
+                        </span>
+                      </td>
+                      <td>
+                        <select
+                          className="admin-status-select"
+                          value={quote.status}
+                          onChange={e => updateQuoteStatus(quote.id, e.target.value as OrderStatus)}
+                          aria-label={`Change status for quote ${quote.quoteNumber}`}
+                        >
+                          {Object.keys(STATUS_COLORS).map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <button
+                          className="admin-action-btn admin-action-btn--danger"
+                          title="Delete Quote"
+                          onClick={() => {
+                            if (confirm(`Delete quote ${quote.quoteNumber}?`)) {
+                              deleteQuote(quote.id)
+                            }
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Summary footer */}
         <div className="admin-table-footer">
-          <span>Showing {filtered.length} of {data.length} records</span>
+          <span>
+            Showing {tab === 'orders' ? filteredOrders.length : filteredQuotes.length} of{' '}
+            {tab === 'orders' ? orders.length : quotes.length} records
+          </span>
         </div>
       </div>
 
@@ -240,7 +336,7 @@ const ordersStyles = `
   }
 
   .admin-status-select {
-    padding: 0.3rem 0.625rem;
+    padding: 0.35rem 0.625rem;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
@@ -255,6 +351,25 @@ const ordersStyles = `
     border-color: var(--color-accent);
   }
 
+  .admin-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .admin-action-btn--danger:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: #ef444415;
+  }
+
   .admin-table-footer {
     padding: 1rem 1.5rem;
     border-top: 1px solid var(--color-border);
@@ -262,16 +377,17 @@ const ordersStyles = `
     color: var(--color-text-muted);
   }
 
-  /* Reuse from products page */
   .admin-filters-bar {
     padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
     gap: 1rem;
+    flex-wrap: wrap;
   }
 
-  .admin-search-wrap { position: relative; max-width: 360px; }
+  .admin-search-wrap { position: relative; max-width: 360px; flex: 1; min-width: 240px; }
 
   .admin-search-icon {
     position: absolute;

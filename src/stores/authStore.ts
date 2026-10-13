@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 export interface AuthUser {
   name: string
@@ -16,6 +16,15 @@ interface AuthState {
   logout: () => void
 }
 
+// Clean up any legacy persistent localStorage session if present
+try {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('curio-auth')
+  }
+} catch {
+  // Ignore in non-browser env
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -23,36 +32,43 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       login: async (email, _password, name, company) => {
-        // Dummy auth — replace with Firebase Auth in Milestone 4
-        await new Promise(resolve => setTimeout(resolve, 800))
+        await new Promise(resolve => setTimeout(resolve, 400))
         set({
           isAuthenticated: true,
           user: {
-            name: name ?? email.split('@')[0],
+            name: name ?? (email.includes('admin') ? 'Admin User' : email.split('@')[0]),
             email,
-            company,
-            role: email.includes('admin') ? 'admin' : 'customer',
+            company: company ?? (email.includes('admin') ? 'Curio Management' : 'Enterprise Client'),
+            role: email.toLowerCase().includes('admin') ? 'admin' : 'customer',
           },
         })
       },
 
       signup: async (name, email, _password, company) => {
-        // Dummy auth — replace with Firebase Auth in Milestone 4
-        await new Promise(resolve => setTimeout(resolve, 900))
+        await new Promise(resolve => setTimeout(resolve, 400))
         set({
           isAuthenticated: true,
-          user: { name, email, company, role: 'customer' },
+          user: {
+            name,
+            email,
+            company: company ?? 'Enterprise Client',
+            role: email.toLowerCase().includes('admin') ? 'admin' : 'customer',
+          },
         })
       },
 
       logout: () => {
         set({ isAuthenticated: false, user: null })
+        try {
+          sessionStorage.removeItem('curio-auth')
+        } catch {}
       },
     }),
     {
       name: 'curio-auth',
-      // Only persist the user object — re-derive isAuthenticated from it
+      storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
     },
   ),
 )
+

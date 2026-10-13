@@ -264,6 +264,43 @@ export function AuthPage() {
               }
             </button>
 
+            {/* Quick Demo Logins */}
+            <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 600 }}>
+                <span style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+                <span>QUICK 1-CLICK ACCESS</span>
+                <span style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-surface btn-sm"
+                  style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)' }}
+                  onClick={async () => {
+                    setLoading(true)
+                    await login('customer@curio.com', 'demo123', 'Riya Singh', 'Razorpay')
+                    navigate(from, { replace: true })
+                  }}
+                  disabled={loading}
+                >
+                  👤 Demo Customer
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-surface btn-sm"
+                  style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', borderColor: 'var(--color-accent)', color: 'var(--color-accent-text)' }}
+                  onClick={async () => {
+                    setLoading(true)
+                    await login('admin@curio.com', 'admin123', 'Curio Admin', 'Curio Corporate')
+                    navigate('/admin', { replace: true })
+                  }}
+                  disabled={loading}
+                >
+                  🛡️ Demo Admin
+                </button>
+              </div>
+            </div>
+
             {/* Forgot password (login only) */}
             {mode === 'login' && (
               <p className="auth-forgot">

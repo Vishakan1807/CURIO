@@ -1,13 +1,5 @@
 import { Mail, Building2, Phone } from 'lucide-react'
-
-const CUSTOMERS = [
-  { id: 'C-001', name: 'Riya Singh', email: 'riya@razorpay.com', company: 'Razorpay', phone: '9876543210', orders: 4, spent: 412500, tier: 'Gold' },
-  { id: 'C-002', name: 'Arjun Mehra', email: 'arjun@swiggy.in', company: 'Swiggy', phone: '9123456789', orders: 7, spent: 892300, tier: 'Platinum' },
-  { id: 'C-003', name: 'Priya Nair', email: 'priya@cred.club', company: 'CRED', phone: '9988776655', orders: 2, spent: 89900, tier: 'Silver' },
-  { id: 'C-004', name: 'Siddharth K', email: 'sid@zepto.com', company: 'Zepto', phone: '9012345678', orders: 3, spent: 198500, tier: 'Gold' },
-  { id: 'C-005', name: 'Meera Joshi', email: 'meera@freshworks.com', company: 'Freshworks', phone: '9765432109', orders: 5, spent: 345000, tier: 'Gold' },
-  { id: 'C-006', name: 'Vikram Patel', email: 'vikram@hdfcbank.com', company: 'HDFC Bank', phone: '9234567890', orders: 12, spent: 1240000, tier: 'Platinum' },
-]
+import { useAdminStore } from '@/stores/adminStore'
 
 const TIER_COLORS: Record<string, string> = {
   Silver: '#94A3B8',
@@ -16,20 +8,45 @@ const TIER_COLORS: Record<string, string> = {
 }
 
 export function AdminCustomersPage() {
+  const { customers, orders } = useAdminStore()
+
+  // Calculate dynamic spend and order count for each customer from real orders
+  const customerStats = customers.map(c => {
+    const cOrders = orders.filter(
+      o => o.customerEmail.toLowerCase() === c.email.toLowerCase() && o.status !== 'Cancelled'
+    )
+    const spent = cOrders.reduce((sum, o) => sum + o.total, 0)
+    const orderCount = cOrders.length
+
+    let tier: 'Silver' | 'Gold' | 'Platinum' = 'Silver'
+    if (spent >= 300000 || orderCount >= 3) tier = 'Platinum'
+    else if (spent >= 100000 || orderCount >= 1) tier = 'Gold'
+
+    return {
+      ...c,
+      orderCount,
+      spent,
+      tier,
+    }
+  })
+
+  const totalSpentAll = customerStats.reduce((sum, c) => sum + c.spent, 0)
+  const avgOrderValue = orders.length > 0 ? Math.round(totalSpentAll / orders.length) : 0
+
   return (
     <div className="admin-page">
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Customers</h1>
-          <p className="admin-page-sub">{CUSTOMERS.length} registered corporate accounts</p>
+          <h1 className="admin-page-title">Corporate Customers</h1>
+          <p className="admin-page-sub">{customers.length} registered corporate client organizations</p>
         </div>
       </div>
 
       <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
         {[
-          { label: 'Total Customers', value: '512', color: '#6C63FF' },
-          { label: 'Avg Order Value', value: '₹58,400', color: '#22C55E' },
-          { label: 'Repeat Rate', value: '74%', color: '#F59E0B' },
+          { label: 'Active Corporate Clients', value: customers.length.toString(), color: '#6C63FF' },
+          { label: 'Avg Order Value', value: `₹${avgOrderValue.toLocaleString('en-IN')}`, color: '#22C55E' },
+          { label: 'Total Client Spend', value: `₹${totalSpentAll.toLocaleString('en-IN')}`, color: '#F59E0B' },
         ].map(s => (
           <div key={s.label} className="admin-kpi-card">
             <p className="admin-kpi-card__value" style={{ color: s.color }}>{s.value}</p>
@@ -45,19 +62,25 @@ export function AdminCustomersPage() {
               <tr>
                 <th>Customer</th>
                 <th>Company</th>
-                <th>Contact</th>
-                <th>Orders</th>
+                <th>Contact Details</th>
+                <th>Orders Placed</th>
                 <th>Total Spent</th>
                 <th>Tier</th>
               </tr>
             </thead>
             <tbody>
-              {CUSTOMERS.map(c => (
+              {customerStats.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--color-text-muted)' }}>
+                    No customer records found.
+                  </td>
+                </tr>
+              ) : customerStats.map(c => (
                 <tr key={c.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div className="admin-user-avatar" style={{ width: 36, height: 36, fontSize: '0.875rem' }}>
-                        {c.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      <div className="admin-user-avatar">
+                        {c.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </div>
                       <div>
                         <p className="admin-table__name">{c.name}</p>
@@ -80,7 +103,7 @@ export function AdminCustomersPage() {
                       </div>
                     </div>
                   </td>
-                  <td style={{ fontWeight: 700 }}>{c.orders}</td>
+                  <td style={{ fontWeight: 700 }}>{c.orderCount} orders</td>
                   <td className="admin-table__amount">₹{c.spent.toLocaleString('en-IN')}</td>
                   <td>
                     <span
@@ -104,7 +127,7 @@ export function AdminCustomersPage() {
           border-radius: 50%;
           background: var(--color-accent);
           color: #fff;
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           font-weight: 700;
           display: flex;
           align-items: center;

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Server (Lifetime Local/VPS storage)
+  curio-postgres:
+    image: postgres:16-alpine
+    container_name: curio-postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: curio_admin
+      POSTGRES_PASSWORD: CurioPostgresSecure2026!
+      POSTGRES_DB: curio_gifting_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U curio_admin -d curio_gifting_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin 4 Web GUI (Optional: accessible at http://localhost:5050)
+  curio-pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: curio-pgadmin-ui
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@curio.com
+      PGADMIN_DEFAULT_PASSWORD: CurioAdminPass2026!
+    ports:
+      - "5050:80"
+    depends_on:
+      - curio-postgres
+
+volumes:
+  postgres_data:
+    driver: local

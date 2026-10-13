@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, ChevronDown, X, Gift } from 'lucide-react'
 import { PRODUCTS } from '@/data/products'
@@ -13,26 +13,40 @@ export function ShopPage() {
   
   // State for filters
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000])
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 15000])
   const [sortBy, setSortBy] = useState<SortOption>('featured')
+
+  // Reset selected brands when category route changes
+  useEffect(() => {
+    setSelectedBrands([])
+  }, [category])
 
   const query = searchParams.get('q') || ''
 
-  // Derived data
-  const allBrands = useMemo(() => {
-    return Array.from(new Set(PRODUCTS.map(p => p.brand))).sort()
-  }, [])
+  // Category-specific product pool
+  const categoryProducts = useMemo(() => {
+    if (!category) return PRODUCTS
+    const normalizedCategory = category.replace('-', ' ').toLowerCase()
+    return PRODUCTS.filter(p => 
+      p.category.toLowerCase().includes(normalizedCategory) || 
+      normalizedCategory.includes(p.category.toLowerCase())
+    )
+  }, [category])
+
+  // Category-aware available brands with counts
+  const availableBrands = useMemo(() => {
+    const counts: Record<string, number> = {}
+    categoryProducts.forEach(p => {
+      counts[p.brand] = (counts[p.brand] || 0) + 1
+    })
+    return Object.entries(counts)
+      .map(([brand, count]) => ({ brand, count }))
+      .sort((a, b) => a.brand.localeCompare(b.brand))
+  }, [categoryProducts])
 
   // Filtering logic
   const filteredProducts = useMemo(() => {
-    let result = PRODUCTS
-
-    // Category filter (from URL)
-    if (category) {
-      // Basic normalization to match URL params like 'bags-travel' to 'Bags & Travel'
-      const normalizedCategory = category.replace('-', ' ').toLowerCase()
-      result = result.filter(p => p.category.toLowerCase().includes(normalizedCategory) || normalizedCategory.includes(p.category.toLowerCase()))
-    }
+    let result = [...categoryProducts]
 
     // Search query
     if (query) {
@@ -65,12 +79,11 @@ export function ShopPage() {
         break
       case 'featured':
       default:
-        // Already loosely sorted by featured in data
         break
     }
 
     return result
-  }, [category, query, selectedBrands, priceRange, sortBy])
+  }, [categoryProducts, query, selectedBrands, priceRange, sortBy])
 
   const toggleBrand = (brand: string) => {
     setSelectedBrands(prev => 
@@ -80,7 +93,7 @@ export function ShopPage() {
 
   const clearFilters = () => {
     setSelectedBrands([])
-    setPriceRange([0, 10000])
+    setPriceRange([0, 15000])
   }
 
   return (
@@ -140,14 +153,17 @@ export function ShopPage() {
               <h4>Brands</h4>
             </div>
             <div className="shop-filter-options">
-              {allBrands.map(brand => (
-                <label key={brand} className="shop-filter-checkbox">
-                  <input 
-                    type="checkbox" 
-                    checked={selectedBrands.includes(brand)}
-                    onChange={() => toggleBrand(brand)}
-                  />
-                  <span>{brand}</span>
+              {availableBrands.map(({ brand, count }) => (
+                <label key={brand} className="shop-filter-checkbox" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedBrands.includes(brand)}
+                      onChange={() => toggleBrand(brand)}
+                    />
+                    <span>{brand}</span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>({count})</span>
                 </label>
               ))}
             </div>
@@ -166,15 +182,15 @@ export function ShopPage() {
                 <div 
                   className="price-slider-fill"
                   style={{
-                    left: `${(priceRange[0] / 10000) * 100}%`,
-                    right: `${100 - (priceRange[1] / 10000) * 100}%`
+                    left: `${(priceRange[0] / 15000) * 100}%`,
+                    right: `${100 - (priceRange[1] / 15000) * 100}%`
                   }}
                 />
                 <input
                   type="range"
                   min={0}
-                  max={10000}
-                  step={100}
+                  max={15000}
+                  step={200}
                   value={priceRange[0]}
                   onChange={e => {
                     const val = Number(e.target.value)
@@ -186,8 +202,8 @@ export function ShopPage() {
                 <input
                   type="range"
                   min={0}
-                  max={10000}
-                  step={100}
+                  max={15000}
+                  step={200}
                   value={priceRange[1]}
                   onChange={e => {
                     const val = Number(e.target.value)

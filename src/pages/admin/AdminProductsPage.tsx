@@ -1,14 +1,37 @@
 import { useState } from 'react'
-import { Search, Plus, Edit2, Trash2, Package } from 'lucide-react'
-import { PRODUCTS } from '@/data/products'
+import { Search, Plus, Trash2, Package, X } from 'lucide-react'
+import { useAdminStore } from '@/stores/adminStore'
+import type { Category } from '@/types/product'
+
+const ALL_CATEGORIES: Category[] = [
+  'Drinkware',
+  'Technology',
+  'Bags & Travel',
+  'Stationery',
+  'Apparel',
+  'Gift Hampers',
+  'Eco-Friendly',
+  'Executive',
+]
 
 export function AdminProductsPage() {
+  const { products, addProduct, deleteProduct } = useAdminStore()
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
 
-  const categories = ['All', ...Array.from(new Set(PRODUCTS.map(p => p.category))).sort()]
+  // Add Product modal state
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [name, setName] = useState('')
+  const [brand, setBrand] = useState('')
+  const [category, setCategory] = useState<Category>('Drinkware')
+  const [price, setPrice] = useState('1499')
+  const [minQty, setMinQty] = useState('15')
+  const [imageUrl, setImageUrl] = useState('')
+  const [description, setDescription] = useState('')
 
-  const filtered = PRODUCTS.filter(p => {
+  const categories = ['All', ...ALL_CATEGORIES]
+
+  const filtered = products.filter(p => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.brand.toLowerCase().includes(search.toLowerCase())
@@ -16,23 +39,52 @@ export function AdminProductsPage() {
     return matchSearch && matchCat
   })
 
-  const getStockTotal = (p: typeof PRODUCTS[number]) =>
-    p.variants ? p.variants.reduce((sum, v) => sum + v.stock, 0) : 999
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim() || !brand.trim()) return
 
-  const getStockBadge = (stock: number) => {
-    if (stock > 100) return { label: 'In Stock', color: '#22C55E' }
-    if (stock > 20)  return { label: 'Low Stock', color: '#F59E0B' }
-    return { label: 'Critical', color: '#EF4444' }
+    addProduct({
+      name: name.trim(),
+      brand: brand.trim(),
+      category,
+      price: Number(price) || 999,
+      minQty: Number(minQty) || 10,
+      description: description.trim() || 'Premium corporate gifting product.',
+      rating: 4.8,
+      reviews: 1,
+      badge: 'New',
+      images: [
+        imageUrl.trim() ||
+          'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&q=80&w=800',
+      ],
+      customizable: true,
+      features: ['Corporate branding available', 'Premium packaging'],
+      specifications: {
+        Brand: brand.trim(),
+        Category: category,
+      },
+    })
+
+    // Reset & close
+    setName('')
+    setBrand('')
+    setImageUrl('')
+    setDescription('')
+    setShowAddModal(false)
   }
 
   return (
     <div className="admin-page">
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Products</h1>
-          <p className="admin-page-sub">{PRODUCTS.length} products in catalogue</p>
+          <h1 className="admin-page-title">Live Product Catalogue</h1>
+          <p className="admin-page-sub">{products.length} active products in live database</p>
         </div>
-        <button className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+        <button
+          className="btn btn-primary btn-sm"
+          style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}
+          onClick={() => setShowAddModal(true)}
+        >
           <Plus size={16} /> Add Product
         </button>
       </div>
@@ -69,9 +121,9 @@ export function AdminProductsPage() {
               <tr>
                 <th>Product</th>
                 <th>Category</th>
-                <th>Price</th>
-                <th>Min Qty</th>
-                <th>Stock</th>
+                <th>Unit Price</th>
+                <th>Min MOQ</th>
+                <th>Stock Status</th>
                 <th>Rating</th>
                 <th>Actions</th>
               </tr>
@@ -79,21 +131,21 @@ export function AdminProductsPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--color-text-muted)' }}>
                     No products match your search.
                   </td>
                 </tr>
               ) : filtered.map(p => {
-                const stock = getStockTotal(p)
-                const badge = getStockBadge(stock)
                 return (
                   <tr key={p.id}>
                     <td>
                       <div className="admin-product-cell">
                         <div className="admin-product-thumb">
-                          {p.images[0]
-                            ? <img src={p.images[0]} alt={p.name} />
-                            : <Package size={16} />}
+                          {p.images[0] ? (
+                            <img src={p.images[0]} alt={p.name} />
+                          ) : (
+                            <Package size={16} />
+                          )}
                         </div>
                         <div>
                           <p className="admin-table__name">{p.name}</p>
@@ -109,10 +161,9 @@ export function AdminProductsPage() {
                     <td>
                       <span
                         className="admin-status-pill"
-                        style={{ background: `${badge.color}22`, color: badge.color }}
+                        style={{ background: '#22C55E22', color: '#22C55E' }}
                       >
-                        {badge.label}
-                        {p.variants ? ` (${stock})` : ''}
+                        In Stock
                       </span>
                     </td>
                     <td>
@@ -126,22 +177,18 @@ export function AdminProductsPage() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.375rem' }}>
-                        <button
-                          className="admin-action-btn"
-                          title="Edit product"
-                          aria-label={`Edit ${p.name}`}
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          className="admin-action-btn admin-action-btn--danger"
-                          title="Delete product"
-                          aria-label={`Delete ${p.name}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                      <button
+                        className="admin-action-btn admin-action-btn--danger"
+                        title="Delete product"
+                        aria-label={`Delete ${p.name}`}
+                        onClick={() => {
+                          if (confirm(`Delete "${p.name}" from catalogue?`)) {
+                            deleteProduct(p.id)
+                          }
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </td>
                   </tr>
                 )
@@ -150,6 +197,122 @@ export function AdminProductsPage() {
           </table>
         </div>
       </div>
+
+      {/* Add Product Modal */}
+      {showAddModal && (
+        <div className="checkout-modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="checkout-modal" onClick={e => e.stopPropagation()}>
+            <div className="checkout-modal__header">
+              <div>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.375rem' }}>Add New Product</h2>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem' }}>Add a product directly to the live Curio catalogue</p>
+              </div>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowAddModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSubmit} className="checkout-modal__form">
+              <div className="checkout-grid-2">
+                <div className="checkout-field">
+                  <label className="checkout-label">Product Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="checkout-input"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Titan Connected Smart Band"
+                  />
+                </div>
+                <div className="checkout-field">
+                  <label className="checkout-label">Brand Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="checkout-input"
+                    value={brand}
+                    onChange={e => setBrand(e.target.value)}
+                    placeholder="Titan"
+                  />
+                </div>
+              </div>
+
+              <div className="checkout-grid-2">
+                <div className="checkout-field">
+                  <label className="checkout-label">Category *</label>
+                  <select
+                    className="checkout-input"
+                    value={category}
+                    onChange={e => setCategory(e.target.value as Category)}
+                  >
+                    {ALL_CATEGORIES.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="checkout-field">
+                  <label className="checkout-label">Unit Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    className="checkout-input"
+                    value={price}
+                    onChange={e => setPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="checkout-grid-2">
+                <div className="checkout-field">
+                  <label className="checkout-label">Minimum Order Qty (MOQ)</label>
+                  <input
+                    type="number"
+                    required
+                    className="checkout-input"
+                    value={minQty}
+                    onChange={e => setMinQty(e.target.value)}
+                  />
+                </div>
+                <div className="checkout-field">
+                  <label className="checkout-label">Image URL (Unsplash or direct)</label>
+                  <input
+                    type="url"
+                    className="checkout-input"
+                    value={imageUrl}
+                    onChange={e => setImageUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                  />
+                </div>
+              </div>
+
+              <div className="checkout-field">
+                <label className="checkout-label">Description</label>
+                <textarea
+                  className="checkout-input"
+                  style={{ minHeight: '75px', resize: 'vertical' }}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Short description for corporate clients..."
+                />
+              </div>
+
+              <div className="checkout-footer">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save to Catalogue
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style>{productsStyles}</style>
     </div>
@@ -265,11 +428,6 @@ const productsStyles = `
     color: var(--color-text-secondary);
     cursor: pointer;
     transition: all var(--transition-fast);
-  }
-  .admin-action-btn:hover {
-    background: var(--color-surface-2);
-    border-color: var(--color-accent);
-    color: var(--color-accent-text);
   }
   .admin-action-btn--danger:hover {
     border-color: #ef4444;

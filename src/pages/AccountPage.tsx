@@ -1,44 +1,35 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { User, Building2, Mail, Package, LogOut, ChevronRight, ShoppingBag, ClipboardList, Settings, Star } from 'lucide-react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { User, Building2, Mail, Package, LogOut, ChevronRight, ShoppingBag, ClipboardList, Settings, Star, CheckCircle } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useCartStore } from '@/stores/cartStore'
+import { useAdminStore } from '@/stores/adminStore'
 
-// Mock order history data
-const MOCK_ORDERS = [
-  {
-    id: 'ORD-2410-001',
-    date: '2024-10-02',
-    status: 'Delivered',
-    statusColor: '#22c55e',
-    total: 45600,
-    items: ['Insulated Flask 750ml × 30', 'Premium Notebook Set × 20'],
-  },
-  {
-    id: 'ORD-2409-008',
-    date: '2024-09-18',
-    status: 'Processing',
-    statusColor: '#f59e0b',
-    total: 124750,
-    items: ['Executive Welcome Kit × 25'],
-  },
-  {
-    id: 'ORD-2408-042',
-    date: '2024-08-30',
-    status: 'Delivered',
-    statusColor: '#22c55e',
-    total: 37980,
-    items: ['Canvas Laptop Backpack × 20', 'Premium Rollerball Pen × 50'],
-  },
-]
+const STATUS_COLORS: Record<string, string> = {
+  Processing: '#f59e0b',
+  Shipped: '#0ea5e9',
+  Delivered: '#22c55e',
+  Cancelled: '#ef4444',
+}
 
 type ActiveTab = 'overview' | 'orders' | 'settings'
 
 export function AccountPage() {
   const { user, logout } = useAuthStore()
   const { getTotalItems } = useCartStore()
+  const allOrders = useAdminStore(s => s.orders)
   const navigate = useNavigate()
+  const location = useLocation()
+  const orderSuccess = (location.state as { orderSuccess?: string })?.orderSuccess
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview')
+
+  // Filter orders by active user email, or fallback to all active customer orders
+  const customerOrders = allOrders.filter(
+    o => !user?.email || o.customerEmail.toLowerCase() === user.email.toLowerCase() || user.role === 'admin'
+  )
+  const orders = customerOrders.length > 0 ? customerOrders : allOrders
+
+  const totalSpent = orders.filter(o => o.status !== 'Cancelled').reduce((sum, o) => sum + o.total, 0)
 
   const handleLogout = () => {
     logout()
@@ -48,6 +39,7 @@ export function AccountPage() {
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : '?'
+
 
   return (
     <div className="account-page">
@@ -91,6 +83,27 @@ export function AccountPage() {
           ))}
         </div>
 
+        {/* Order success notification */}
+        {orderSuccess && (
+          <div style={{
+            background: '#22c55e18',
+            border: '1.5px solid #22c55e',
+            color: '#15803d',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}>
+            <CheckCircle size={22} color="#22c55e" />
+            <div>
+              <p style={{ fontWeight: 700, margin: 0 }}>Order Confirmed & Placed!</p>
+              <p style={{ fontSize: '0.875rem', margin: 0 }}>Reference <strong>{orderSuccess}</strong> has been created. Our fulfillment team has received your order and is processing dispatch.</p>
+            </div>
+          </div>
+        )}
+
         {/* Tab content */}
         <div className="account-content">
 
@@ -101,7 +114,7 @@ export function AccountPage() {
                 <div className="account-stat-card">
                   <ShoppingBag size={24} className="account-stat-card__icon" />
                   <div>
-                    <p className="account-stat-card__num">{MOCK_ORDERS.length}</p>
+                    <p className="account-stat-card__num">{orders.length}</p>
                     <p className="account-stat-card__label">Total Orders</p>
                   </div>
                 </div>
@@ -122,7 +135,7 @@ export function AccountPage() {
                 <div className="account-stat-card">
                   <ClipboardList size={24} className="account-stat-card__icon" />
                   <div>
-                    <p className="account-stat-card__num">₹{(MOCK_ORDERS.reduce((a, o) => a + o.total, 0) / 1000).toFixed(0)}K</p>
+                    <p className="account-stat-card__num">₹{(totalSpent / 1000).toFixed(0)}K</p>
                     <p className="account-stat-card__label">Lifetime Value</p>
                   </div>
                 </div>
@@ -135,21 +148,26 @@ export function AccountPage() {
                   <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('orders')}>View all</button>
                 </div>
                 <div className="order-list">
-                  {MOCK_ORDERS.slice(0, 2).map(order => (
-                    <div key={order.id} className="order-row">
-                      <div className="order-row__info">
-                        <p className="order-row__id">{order.id}</p>
-                        <p className="order-row__items">{order.items.join(', ')}</p>
-                        <p className="order-row__date">{new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  {orders.slice(0, 3).map(order => {
+                    const statusColor = STATUS_COLORS[order.status] ?? '#6B7280'
+                    return (
+                      <div key={order.id} className="order-row">
+                        <div className="order-row__info">
+                          <p className="order-row__id">{order.orderNumber}</p>
+                          <p className="order-row__items">
+                            {order.items.map(i => `${i.name} × ${i.quantity}`).join(', ')}
+                          </p>
+                          <p className="order-row__date">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        </div>
+                        <div className="order-row__right">
+                          <span className="order-status" style={{ background: `${statusColor}22`, color: statusColor, padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 600 }}>
+                            {order.status}
+                          </span>
+                          <p className="order-row__total">₹{order.total.toLocaleString('en-IN')}</p>
+                        </div>
                       </div>
-                      <div className="order-row__right">
-                        <span className="order-status" style={{ '--status-color': order.statusColor } as React.CSSProperties}>
-                          {order.status}
-                        </span>
-                        <p className="order-row__total">₹{order.total.toLocaleString('en-IN')}</p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -180,33 +198,42 @@ export function AccountPage() {
               <div className="account-card__header">
                 <h2>Order History</h2>
               </div>
-              {MOCK_ORDERS.length === 0 ? (
+              {orders.length === 0 ? (
                 <div className="orders-empty">
                   <ShoppingBag size={48} />
                   <p>No orders yet. <Link to="/shop">Start shopping</Link></p>
                 </div>
               ) : (
                 <div className="order-list">
-                  {MOCK_ORDERS.map(order => (
-                    <div key={order.id} className="order-row order-row--detailed">
-                      <div className="order-row__info">
-                        <p className="order-row__id">{order.id}</p>
-                        <ul className="order-row__item-list">
-                          {order.items.map(item => <li key={item}>{item}</li>)}
-                        </ul>
-                        <p className="order-row__date">{new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  {orders.map(order => {
+                    const statusColor = STATUS_COLORS[order.status] ?? '#6B7280'
+                    return (
+                      <div key={order.id} className="order-row order-row--detailed">
+                        <div className="order-row__info">
+                          <p className="order-row__id">{order.orderNumber}</p>
+                          <ul className="order-row__item-list">
+                            {order.items.map(item => (
+                              <li key={item.productId || item.name}>
+                                {item.name} ({item.brand}) × {item.quantity} units {item.variantColor ? `· ${item.variantColor}` : ''}
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="order-row__date" style={{ marginTop: '0.375rem' }}>
+                            Ordered on {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} · {order.paymentMethod}
+                          </p>
+                          <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+                            Shipping to: {order.shippingAddress}
+                          </p>
+                        </div>
+                        <div className="order-row__right">
+                          <span className="order-status" style={{ background: `${statusColor}22`, color: statusColor, padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-full)', fontSize: '0.8125rem', fontWeight: 600 }}>
+                            {order.status}
+                          </span>
+                          <p className="order-row__total" style={{ marginTop: '0.5rem' }}>₹{order.total.toLocaleString('en-IN')}</p>
+                        </div>
                       </div>
-                      <div className="order-row__right">
-                        <span className="order-status" style={{ '--status-color': order.statusColor } as React.CSSProperties}>
-                          {order.status}
-                        </span>
-                        <p className="order-row__total">₹{order.total.toLocaleString('en-IN')}</p>
-                        <button className="btn btn-ghost btn-sm" style={{ marginTop: '0.5rem' }}>
-                          View Invoice
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
