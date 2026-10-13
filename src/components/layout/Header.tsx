@@ -6,6 +6,7 @@ import {
   Menu,
   Package,
   Search,
+  ShieldCheck,
   ShoppingBag,
   User,
   X,
@@ -226,6 +227,11 @@ export function Header() {
                       <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{user?.email}</p>
                     </div>
                     <div className="divider" style={{ margin: '0.5rem -0.5rem' }} />
+                    {user?.role === 'admin' && (
+                      <Link to="/admin" className="curio-megamenu__item" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-accent-text)', fontWeight: 600 }}>
+                        <ShieldCheck size={14} /> Admin Panel
+                      </Link>
+                    )}
                     <Link to="/account" className="curio-megamenu__item">My Profile</Link>
                     <Link to="/account/orders" className="curio-megamenu__item">Order History</Link>
                     <div className="divider" style={{ margin: '0.5rem -0.5rem' }} />
